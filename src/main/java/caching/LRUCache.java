@@ -16,11 +16,6 @@ public class LRUCache {
         int key;
         LRUEntry next;
         LRUEntry prev;
-
-        LRUEntry(int key, int value) {
-            this.key = key;
-            this.value = value;
-        }
     }
 
     private Map<Integer, LRUEntry> hashtable;
@@ -56,8 +51,8 @@ public class LRUCache {
             return -1;
         }
 
-        //since this key has been accesed move it to head as its LRU cache.
-        moveToHead(key);
+        //since this key has been accessed move it to head as its LRU cache.
+        moveToHead(entry);
         return entry.value;
     }
 
@@ -67,12 +62,69 @@ public class LRUCache {
 
         if (entry == null) {
             // key is not present in hash table
+            // Create new entry
+            LRUEntry newEntry = new LRUEntry();
+            newEntry.key = key;
+            newEntry.value = value;
+
+            //after new entry is created add it to hash table and actual list that represents cache
+            hashtable.put(key, newEntry);
+            addToFront(newEntry);
+            totalItemsInCache++;
+
+            //If over capacity has occured removed the LRU item
+            if (totalItemsInCache > maxCapacity) {
+                removeLRUEntry();
+            }
         } else {
             // key is present , update its value and move it to head since that key has been accessed now.
             entry.value = value;
             moveToHead(entry);
         }
+    }
 
+    private void removeLRUEntry() {
+        LRUEntry tail = popTail();
 
+        hashtable.remove(tail.key);
+        --totalItemsInCache;
+    }
+
+    private LRUEntry popTail() {
+        LRUEntry tailItem = tail.prev;
+        removeFromList(tailItem);
+
+        return tailItem;
+    }
+
+    private void addToFront(LRUEntry node) {
+        // Wire up the new node being to be inserted
+        node.prev = head;
+        node.next = head.next;
+
+      /*
+        Re-wire the node after the head. Our node is still sitting "in the middle of nowhere".
+        We got the new node pointing to the right things, but we need to fix up the original
+        head & head's next.
+        head <-> head.next <-> head.next.next <-> head.next.next.next <-> ...
+        ^            ^
+        |- new node -|
+        That's where we are before these next 2 lines.
+      */
+        head.next.prev = node;
+        head.next = node;
+    }
+
+    private void removeFromList(LRUEntry node) {
+        LRUEntry savedPrev = node.prev;
+        LRUEntry savedNext = node.next;
+
+        savedPrev.next = savedNext;
+        savedNext.prev = savedPrev;
+    }
+
+    private void moveToHead(LRUEntry node) {
+        removeFromList(node);
+        addToFront(node);
     }
 }
